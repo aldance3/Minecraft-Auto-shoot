@@ -1,0 +1,41 @@
+typealias Minecraft = Java<net.minecraft.client.Minecraft>;
+typealias KeyMapping = Java<net.minecraft.client.KeyMapping>;
+
+async void mainLoop() {
+    while (variables.getBoolean("raycast_running")) {
+        ItemStack weapon = inventory.getMainHand();
+        if (weapon.isDamageable && weapon.durability < 10) {
+            variables.setBoolean("raycast_paused", true);
+            Minecraft mc = Minecraft.#instance;
+            KeyMapping swapKey = mc.options.keySwapOffhand;
+            swapKey.#isDown = true;
+            swapKey.#clickCount = 1;
+            await delay.ticks(2);
+            swapKey.#isDown = false;
+            await delay.ticks(60);
+            variables.setBoolean("raycast_paused", false);
+        }
+        if (variables.getBoolean("raycast_paused")) {
+            await delay.ticks(1);
+            continue;
+        }
+        int playerId = player.getId();
+        HitResult hit = game.rayCast(playerId, 100.0);
+        if (!hit.isMiss && hit.hasEntity) {
+            int targetId = hit.entityId;
+            if (game.entities.getType(targetId) == "minecraft:player") {
+                inventory.setSelectedHotbarSlot(1);
+                await delay.ticks(1);
+                keys.attack.click();
+            }
+        }
+        await delay.ticks(1);
+    }
+}
+
+boolean running = variables.getBoolean("raycast_running");
+variables.setBoolean("raycast_running", !running);
+
+if (!running) {
+    mainLoop();
+}
